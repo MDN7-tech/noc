@@ -1,0 +1,5 @@
+.vagrant/
+.vagrant-home/
+__pycache__/
+*.zip
+AbrNOC_DevOpsTask_Senior_VirtHost.pdf

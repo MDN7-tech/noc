@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  - job_name: node
+    static_configs:
+      - targets: ["vh-test-01.example.net:9100"]
+        labels:
+          region: fra
+          role: kvm
+  - job_name: libvirt
+    static_configs:
+      - targets: ["vh-test-01.example.net:9177"]
+        labels:
+          region: fra
+          role: kvm

@@ -1,0 +1,23 @@
+---
+- name: Test the KVM host role on a Vagrant VM
+  hosts: all
+  become: true
+  vars_files:
+    - group_vars/kvm_hosts.yml
+  pre_tasks:
+    - name: Read Vagrant's current SSH key
+      ansible.builtin.slurp:
+        src: /home/vagrant/.ssh/authorized_keys
+      register: vagrant_keys
+
+    - name: Keep Vagrant access through SSH and firewall changes
+      ansible.builtin.set_fact:
+        kvm_host_admin_user: vagrant
+        kvm_host_admin_authorized_keys:
+          - "{{ vagrant_keys.content | b64decode | trim }}"
+        kvm_host_management_cidrs:
+          - 10.0.2.0/24
+        kvm_host_monitoring_cidrs:
+          - 10.0.2.0/24
+  roles:
+    - kvm_host

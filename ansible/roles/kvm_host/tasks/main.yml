@@ -1,0 +1,136 @@
+---
+- name: Require explicit management CIDRs and an operator key
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'Debian'
+      - ansible_facts['distribution_major_version'] == '12'
+      - ansible_facts['architecture'] == 'x86_64'
+      - kvm_host_management_cidrs | length > 0
+      - kvm_host_admin_authorized_keys | length > 0
+      - "'REPLACE_WITH_OPERATOR_PUBLIC_KEY' not in (kvm_host_admin_authorized_keys | join(' '))"
+    fail_msg: "Set management CIDRs and a real operator public key before applying this role."
+
+- name: Install host packages
+  ansible.builtin.apt:
+    name: "{{ kvm_host_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Download packaged libvirt exporter
+  ansible.builtin.get_url:
+    url: "https://github.com/inovex/prometheus-libvirt-exporter/releases/download/v{{ kvm_host_libvirt_exporter_version }}/prometheus-libvirt-exporter-{{ kvm_host_libvirt_exporter_version }}.amd64.deb"
+    dest: "/var/cache/apt/archives/prometheus-libvirt-exporter-{{ kvm_host_libvirt_exporter_version }}.amd64.deb"
+    checksum: "sha256:{{ kvm_host_libvirt_exporter_sha256 }}"
+    mode: "0644"
+
+- name: Install packaged libvirt exporter
+  ansible.builtin.apt:
+    deb: "/var/cache/apt/archives/prometheus-libvirt-exporter-{{ kvm_host_libvirt_exporter_version }}.amd64.deb"
+  notify: Reload systemd
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ kvm_host_timezone }}"
+
+- name: Ensure administration account exists
+  ansible.builtin.user:
+    name: "{{ kvm_host_admin_user }}"
+    groups: "{{ kvm_host_admin_groups | join(',') }}"
+    append: true
+    shell: /bin/bash
+    create_home: true
+    state: present
+
+- name: Install operator SSH keys
+  ansible.posix.authorized_key:
+    user: "{{ kvm_host_admin_user }}"
+    key: "{{ kvm_host_admin_authorized_keys | join('\n') }}"
+    state: present
+    exclusive: true
+
+- name: Configure SSH hardening
+  ansible.builtin.template:
+    src: 10-kvm-host.conf.j2
+    dest: /etc/ssh/sshd_config.d/10-kvm-host.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Restart ssh
+
+- name: Configure nftables host firewall
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/nft -c -f %s
+  notify: Reload nftables
+
+- name: Apply kernel parameters
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/90-kvm-host.conf
+    reload: true
+  loop: "{{ kvm_host_sysctl | dict2items }}"
+
+- name: Configure chrony
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart chrony
+
+- name: Ensure journald drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure persistent journald storage
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/10-kvm-host.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Journal]
+      Storage=persistent
+      SystemMaxUse=2G
+      RuntimeMaxUse=512M
+      RateLimitIntervalSec=30s
+      RateLimitBurst=10000
+  notify: Restart journald
+
+- name: Ensure persistent journal directory exists
+  ansible.builtin.file:
+    path: /var/log/journal
+    state: directory
+    owner: root
+    group: systemd-journal
+    mode: "2755"
+
+- name: Load new service definition
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable required services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - nftables
+    - chrony
+    - rsyslog
+    - libvirtd.socket
+    - libvirtd-ro.socket
+    - prometheus-node-exporter
+    - prometheus-libvirt-exporter

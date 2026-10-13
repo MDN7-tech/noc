@@ -1,0 +1,24 @@
+#!/usr/sbin/nft -f
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter; policy drop;
+    iifname "lo" accept
+    ct state established,related accept
+    ct state invalid drop
+    ip protocol icmp accept
+    ip6 nexthdr ipv6-icmp accept
+{% for cidr in kvm_host_management_cidrs %}
+    ip saddr {{ cidr }} tcp dport {{ kvm_host_ssh_port }} ct state new accept
+{% endfor %}
+{% for cidr in kvm_host_monitoring_cidrs | default([]) %}
+    ip saddr {{ cidr }} tcp dport { 9100, 9177 } ct state new accept
+{% endfor %}
+  }
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+    ct state established,related accept
+  }
+  chain output { type filter hook output priority filter; policy accept; }
+}

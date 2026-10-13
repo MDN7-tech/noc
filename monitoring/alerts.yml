@@ -1,0 +1,52 @@
+groups:
+  - name: kvm-host-availability
+    rules:
+      - alert: KVMVMDown
+        expr: libvirt_domain_info_state{job="libvirt",role="kvm"} != 1
+        for: 2m
+        labels: {severity: page}
+        annotations:
+          summary: "VM {{ $labels.domain }} stopped on {{ $labels.instance }}"
+          description: "A VM is not running. Check planned stops and the customer VM list."
+
+  - name: kvm-host-capacity-and-storage
+    rules:
+      - alert: KVMHighDiskLatency
+        expr: rate(node_disk_read_time_seconds_total{device=~"nvme.*"}[5m]) / clamp_min(rate(node_disk_reads_completed_total{device=~"nvme.*"}[5m]), 0.001) > 0.050 or rate(node_disk_write_time_seconds_total{device=~"nvme.*"}[5m]) / clamp_min(rate(node_disk_writes_completed_total{device=~"nvme.*"}[5m]), 0.001) > 0.050
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "NVMe latency above 50 ms on {{ $labels.instance }}"
+          description: "Disk time is above 50 ms for 5 minutes. Check the disk and the VMs on it."
+
+      - alert: KVMRaidDegraded
+        expr: (node_md_disks_required{job="node",role="kvm"} - ignoring(state) node_md_disks{job="node",role="kvm",state="active"}) > 0
+        for: 1m
+        labels: {severity: page}
+        annotations:
+          summary: "RAID degraded on {{ $labels.instance }}"
+          description: "MD RAID has fewer disks than needed. Follow the storage runbook and rebuild the disk."
+
+      - alert: KVMHighLoad
+        expr: node_load15 / count by (instance) (node_cpu_seconds_total{mode="idle"}) > 1.5
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "High host load on {{ $labels.instance }}"
+          description: "Load is above 1.5 per CPU for 15 minutes. Check busy tasks and the number of VMs."
+
+      - alert: KVMHostMemoryPressure
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.95
+        for: 10m
+        labels: {severity: page}
+        annotations:
+          summary: "Host memory pressure on {{ $labels.instance }}"
+          description: "Less than 5% free memory for 10 minutes. Check OOM kills and overcommit."
+
+      - alert: KVMNetworkPacketLoss
+        expr: rate(node_network_receive_drop_total{role="kvm",device!="lo"}[5m]) / clamp_min(rate(node_network_receive_packets_total{role="kvm",device!="lo"}[5m]), 1) > 0.01
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "Network drops on {{ $labels.instance }} {{ $labels.device }}"
+          description: "More than 1% dropped packets for 5 minutes. Check the switch and a network probe."

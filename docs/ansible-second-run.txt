@@ -1,0 +1,82 @@
+==> default: Running provisioner: ansible...
+    default: Running ansible-playbook...
+[WARNING]: Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.
+[DEPRECATION WARNING]: The '--inventory-file' argument is deprecated. This feature will be removed from ansible-core version 2.23. Use -i or --inventory instead.
+
+PLAY [Test the KVM host role on a Vagrant VM] **********************************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Host 'default' is using the discovered Python interpreter at '/usr/bin/python3.11', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.21/reference_appendices/interpreter_discovery.html for more information.
+ok: [default]
+
+TASK [Read Vagrant's current SSH key] ******************************************
+ok: [default]
+
+TASK [Keep Vagrant access through SSH and firewall changes] ********************
+ok: [default]
+
+TASK [kvm_host : Require explicit management CIDRs and an operator key] ********
+ok: [default] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [kvm_host : Install host packages] ****************************************
+ok: [default]
+
+TASK [kvm_host : Download packaged libvirt exporter] ***************************
+ok: [default]
+
+TASK [kvm_host : Install packaged libvirt exporter] ****************************
+ok: [default]
+
+TASK [kvm_host : Set timezone] *************************************************
+ok: [default]
+
+TASK [kvm_host : Ensure administration account exists] *************************
+ok: [default]
+
+TASK [kvm_host : Install operator SSH keys] ************************************
+ok: [default]
+
+TASK [kvm_host : Configure SSH hardening] **************************************
+ok: [default]
+
+TASK [kvm_host : Configure nftables host firewall] *****************************
+ok: [default]
+
+TASK [kvm_host : Apply kernel parameters] **************************************
+ok: [default] => (item={'key': 'net.ipv4.ip_forward', 'value': 1})
+ok: [default] => (item={'key': 'net.ipv6.conf.all.forwarding', 'value': 1})
+ok: [default] => (item={'key': 'net.ipv4.conf.all.rp_filter', 'value': 0})
+ok: [default] => (item={'key': 'net.ipv4.conf.default.rp_filter', 'value': 0})
+ok: [default] => (item={'key': 'vm.swappiness', 'value': 10})
+ok: [default] => (item={'key': 'kernel.panic', 'value': 10})
+ok: [default] => (item={'key': 'kernel.panic_on_oops', 'value': 1})
+
+TASK [kvm_host : Configure chrony] *********************************************
+ok: [default]
+
+TASK [kvm_host : Ensure journald drop-in directory exists] *********************
+ok: [default]
+
+TASK [kvm_host : Configure persistent journald storage] ************************
+ok: [default]
+
+TASK [kvm_host : Ensure persistent journal directory exists] *******************
+ok: [default]
+
+TASK [kvm_host : Load new service definition] **********************************
+
+TASK [kvm_host : Enable required services] *************************************
+ok: [default] => (item=nftables)
+ok: [default] => (item=chrony)
+ok: [default] => (item=rsyslog)
+ok: [default] => (item=libvirtd.socket)
+ok: [default] => (item=libvirtd-ro.socket)
+ok: [default] => (item=prometheus-node-exporter)
+ok: [default] => (item=prometheus-libvirt-exporter)
+
+PLAY RECAP *********************************************************************
+default                    : ok=18   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+

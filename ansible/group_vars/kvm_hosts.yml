@@ -1,0 +1,19 @@
+---
+kvm_host_admin_user: ansible
+kvm_host_admin_groups: [sudo, libvirt]
+kvm_host_admin_authorized_keys:
+  - "ssh-ed25519 REPLACE_WITH_OPERATOR_PUBLIC_KEY"
+kvm_host_management_cidrs:
+  - 10.40.0.0/16
+kvm_host_ssh_port: 22
+kvm_host_timezone: Etc/UTC
+kvm_host_sysctl:
+  net.ipv4.ip_forward: 1
+  net.ipv6.conf.all.forwarding: 1
+  net.ipv4.conf.all.rp_filter: 0
+  net.ipv4.conf.default.rp_filter: 0
+  vm.swappiness: 10
+  kernel.panic: 10
+  kernel.panic_on_oops: 1
+kvm_host_monitoring_cidrs:
+  - 10.40.20.0/24

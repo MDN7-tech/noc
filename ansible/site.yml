@@ -1,0 +1,6 @@
+---
+- name: Configure KVM virtualization hosts
+  hosts: kvm_hosts
+  become: true
+  roles:
+    - kvm_host

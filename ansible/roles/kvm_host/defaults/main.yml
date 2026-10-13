@@ -1,0 +1,26 @@
+---
+kvm_host_admin_user: ansible
+kvm_host_admin_groups: [sudo, libvirt]
+kvm_host_admin_authorized_keys: []
+kvm_host_management_cidrs: []
+kvm_host_ssh_port: 22
+kvm_host_timezone: Etc/UTC
+kvm_host_sysctl: {}
+kvm_host_packages:
+  - qemu-system-x86
+  - qemu-utils
+  - libvirt-daemon-system
+  - libvirt-clients
+  - bridge-utils
+  - nftables
+  - chrony
+  - rsyslog
+  - prometheus-node-exporter
+  - smartmontools
+  - nvme-cli
+  - mdadm
+  - lvm2
+  - sudo
+  - openssh-server
+kvm_host_libvirt_exporter_version: "2.5.0"
+kvm_host_libvirt_exporter_sha256: "9d0cf41780900da889293e8457b1bf2c5d3a1ad5abd9dedad51c2b138a987aad"

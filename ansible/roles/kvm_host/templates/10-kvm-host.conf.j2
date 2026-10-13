@@ -1,0 +1,12 @@
+Port {{ kvm_host_ssh_port }}
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+X11Forwarding no
+AllowAgentForwarding no
+AllowTcpForwarding no
+MaxAuthTries 3
+LoginGraceTime 30
+AllowUsers {{ kvm_host_admin_user }}

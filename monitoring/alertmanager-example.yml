@@ -1,0 +1,15 @@
+route:
+  receiver: business-hours
+  group_by: [alertname, instance]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [severity="page"]
+      receiver: on-call
+      continue: false
+    - matchers: [severity="ticket"]
+      receiver: business-hours
+receivers:
+  - name: on-call
+  - name: business-hours
